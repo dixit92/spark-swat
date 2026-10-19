@@ -81,7 +81,7 @@ class PullCLRDDProcessor[T: ClassTag, U: ClassTag](val myNested : Iterator[T],
         val doneFlag : Long = OpenCLBridge.run(ctx, dev_ctx, nLoaded,
                 CLConfig.cl_local_size, lastArgIndex + 1,
                 heapArgStart, CLConfig.heapsPerDevice,
-                currentNativeOutputBuffer.id)
+                fillResult._3.id)
         filled.clBuffersReadyPtr = doneFlag
       }
     }

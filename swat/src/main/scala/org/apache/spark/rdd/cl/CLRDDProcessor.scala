@@ -442,7 +442,17 @@ abstract class CLRDDProcessor[T : ClassTag, U : ClassTag](val nested : Iterator[
     OpenCLBridge.setupGlobalArguments(ctx, dev_ctx) 
   }
 
-  def handleFullInputBuffer() : Tuple2[Int, NativeInputBuffers[T]] = {
+  /*
+   * Called from the reader thread. The output buffer for the new kernel is
+   * returned rather than stored in currentNativeOutputBuffer: that field
+   * belongs to the thread calling next(), which hands it back to
+   * emptiedNativeOutputBuffers when it finishes reading. Sharing the field let
+   * the reader overwrite it in between, so next() released the buffer a
+   * pending kernel was about to write into, and two kernels wrote to the same
+   * buffer.
+   */
+  def handleFullInputBuffer() :
+      Tuple3[Int, NativeInputBuffers[T], NativeOutputBuffers[U]] = {
     inputBuffer.flush
 
     val nLoaded = inputBuffer.nBuffered
@@ -472,14 +482,14 @@ abstract class CLRDDProcessor[T : ClassTag, U : ClassTag](val nested : Iterator[
      */
     OpenCLBridge.enqueueBufferFreeCallback(ctx, dev_ctx, filled.id)
 
-    currentNativeOutputBuffer =
+    val nativeOutputBuffer : NativeOutputBuffers[U] =
          emptiedNativeOutputBuffers.synchronized {
            while (emptiedNativeOutputBuffers.isEmpty) {
              emptiedNativeOutputBuffers.wait
            }
            emptiedNativeOutputBuffers.poll
          }
-    currentNativeOutputBuffer.addToArgs
+    nativeOutputBuffer.addToArgs
 
     if (entryPoint.requiresHeap) {
       // processing_succeeded
@@ -491,7 +501,7 @@ abstract class CLRDDProcessor[T : ClassTag, U : ClassTag](val nested : Iterator[
 
     OpenCLBridge.setIntArg(ctx, lastArgIndex, nLoaded)
 
-    (nLoaded, filled)
+    (nLoaded, filled, nativeOutputBuffer)
   }
 
   override def next() : U = {
