@@ -185,14 +185,17 @@ object RuntimeUtil {
             params, dev_ctx, kernelDir, printKernel, false)
   }
 
-  def getThreadID() : Int = {
-    val threadNamePrefix = "Executor task launch worker-"
-    val threadName = Thread.currentThread.getName
-    if (!threadName.startsWith(threadNamePrefix)) {
-        throw new RuntimeException("Unexpected thread name \"" + threadName + "\"")
-    }
-    Integer.parseInt(threadName.substring(threadNamePrefix.length))
+  /*
+   * Spark 1.x named executor threads "Executor task launch worker-N", N being
+   * the pool thread's index. Spark 2.x renames the thread for every task ("...
+   * for task <TID>"), so hand out the same stable per-thread index ourselves.
+   */
+  private val nextThreadID = new java.util.concurrent.atomic.AtomicInteger(0)
+  private val threadID = new ThreadLocal[Integer] {
+    override def initialValue() : Integer = nextThreadID.getAndIncrement
   }
+
+  def getThreadID() : Int = threadID.get
 
   def getInputBufferForSample[T : ClassTag](firstSample : T, N : Int,
       denseVectorTiling : Int, sparseVectorTiling : Int,

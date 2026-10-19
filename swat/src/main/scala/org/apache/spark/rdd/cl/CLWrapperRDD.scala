@@ -38,7 +38,7 @@ import scala.reflect.runtime.universe._
 
 import org.apache.spark.{Partition, TaskContext}
 import org.apache.spark.rdd._
-import org.apache.spark.Logging
+import org.apache.spark.internal.Logging
 
 class CLWrapperPairRDD[K : ClassTag, V : ClassTag](self : RDD[Tuple2[K, V]],
     useSwat : Boolean) extends Logging with Serializable {
