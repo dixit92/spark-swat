@@ -108,6 +108,13 @@ class DenseVectorInputBufferWrapper(val vectorElementCapacity : Int,
       }
 
       val nFailed = tiled - nTiled
+      // An empty buffer that cannot take one tile never makes progress.
+      if (nTiled == 0 && buffered == 0) {
+        throw new RuntimeException("A tile of " + tiled + " dense vectors " +
+            "(longest " + to_tile_sizes.take(tiled).max + " elements) does not " +
+            "fit in an empty buffer of " + vectorElementCapacity +
+            " elements; set swat.dense_vector_elements")
+      }
       if (nFailed > 0) {
         for (i <- nTiled until tiled) {
           overrun(i - nTiled) = to_tile(i)

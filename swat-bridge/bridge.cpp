@@ -1140,7 +1140,13 @@ JNI_JAVA(jlong, OpenCLBridge, createSwatContext)
                 source_size, &err);
         CHECK(err);
 
-        err = clBuildProgram(program, 1, &device, NULL, NULL, NULL);
+        /*
+         * Optional OpenCL build options, e.g.
+         * SWAT_CL_BUILD_OPTIONS=-cl-fp32-correctly-rounded-divide-sqrt so float
+         * division and sqrt round as the JVM does. Unset: no options (stock).
+         */
+        const char *build_options = getenv("SWAT_CL_BUILD_OPTIONS");
+        err = clBuildProgram(program, 1, &device, build_options, NULL, NULL);
         if (err == CL_BUILD_PROGRAM_FAILURE) {
             size_t build_log_size;
             CHECK(clGetProgramBuildInfo(program, device, CL_PROGRAM_BUILD_LOG, 0,

@@ -219,8 +219,17 @@ object RuntimeUtil {
               firstSample.asInstanceOf[Tuple2[_, _]],
               entryPoint, blockingCopies).asInstanceOf[InputBufferWrapper[T]]
     } else if (firstSample.isInstanceOf[DenseVector]) {
+      val elements : Long = if (CLConfig.denseVectorElements > 0)
+          CLConfig.denseVectorElements
+          else N.toLong * firstSample.asInstanceOf[DenseVector].size
+      // The values buffer is allocated as elements * 8 bytes in an Int.
+      if (elements * 8 > Int.MaxValue) {
+        throw new RuntimeException("Dense-vector input buffer of " + elements +
+            " elements exceeds 2 GB; lower swat.input_chunking or set " +
+            "swat.dense_vector_elements")
+      }
       new DenseVectorInputBufferWrapper(
-              N * firstSample.asInstanceOf[DenseVector].size, N,
+              elements.toInt, N,
               denseVectorTiling, entryPoint, blockingCopies)
           .asInstanceOf[InputBufferWrapper[T]]
     } else if (firstSample.isInstanceOf[SparseVector]) {

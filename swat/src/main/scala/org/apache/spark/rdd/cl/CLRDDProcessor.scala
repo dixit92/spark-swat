@@ -172,6 +172,17 @@ object CLConfig {
   val printKernel_str = System.getProperty("swat.print_kernel")
   val printKernel = if (printKernel_str != null) printKernel_str.toBoolean else false
 
+  /*
+   * Capacity, in elements, of each dense-vector input buffer. By default it is
+   * N times the size of the partition's first vector, which overflows an Int
+   * for long vectors and is too small when later vectors are much longer than
+   * the first (vectors are stored strided in tiles, so a tile needs
+   * tiling * (its longest vector) elements). Setting this fixes the capacity.
+   */
+  val denseVectorElements_str = System.getProperty("swat.dense_vector_elements")
+  val denseVectorElements : Long = if (denseVectorElements_str != null)
+        denseVectorElements_str.toLong else -1L
+
   val ASYNC_MAP_LAMBDA =
       "org.apache.spark.rdd.cl.CLAsyncMappedRDD$$anonfun$1"
   val ASYNC_MAP_PARTITIONS_LAMBDA =
